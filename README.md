@@ -38,5 +38,5 @@ Este proyecto es una recreación del icónico juego Tetris, desarrollado como pr
 Si encuentras algún error o quieres sugerir mejoras, no dudes en abrir un issue.
 
 **Contacto:**
-* Correo electrónico: jorgesantiagosenas@gmail.com
+* Correo: jorgesantiagosenas@gmail.com
 * GitHub: https://github.com/Senasjorge
