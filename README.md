@@ -40,3 +40,4 @@ Si encuentras algún error o quieres sugerir mejoras, no dudes en abrir un issue
 **Contacto:**
 * Correo: jorgesantiagosenas@gmail.com
 * GitHub: https://github.com/Senasjorge
+* Linkedin: https://www.linkedin.com/in/jorge-señas
