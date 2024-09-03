@@ -1,7 +1,7 @@
 Markdown
 # TetriDroid: Un homenaje en Unity con C#
 
-![Texto alternativo](/img/screenshot1.png)
+![Texto alternativo](img/Screenshot1.png)
 
 **Clásico juego de bloques con un toque moderno.**
 
