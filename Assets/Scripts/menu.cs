@@ -52,7 +52,7 @@ public class menu : MonoBehaviour
 
     public void PlayGame()
     {
-        SceneManager.LoadScene("Tetris");
+        SceneManager.LoadScene("TetrisORIGINAL");
     }
     public void HighScores()
 

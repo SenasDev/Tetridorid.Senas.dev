@@ -15,5 +15,5 @@
         "Temp/": true,
         "UIElementsSchema/": true
     },
-    "dotnet.defaultSolution": "Tetridroid.sln"
+    "dotnet.defaultSolution": "Tetris.sln"
 }

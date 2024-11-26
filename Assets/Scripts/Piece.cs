@@ -13,7 +13,7 @@ public class Piece : MonoBehaviour
     public float stepDelay = 1.0f;
     public float moveDelay = 0.1f;
     public float lockDelay = 0.5f;
-
+    
     private float stepTime;
     private float moveTime;
     private float lockTime;
@@ -24,17 +24,25 @@ public class Piece : MonoBehaviour
     private float touchMoveTime;
     private float touchStartTime;
     private float touchMoveDelay = 0.2f;
-    private float maxTapDuration = 0.2f; 
+    private float maxTapDuration = 0.2f;
     private float maxSwipeDistance = 10f;
-    private float minSwipeDistance = 50f; 
+    private float minSwipeDistance = 50f;
     private float swipeThreshold = 300.0f;
-
 
     private ScoreManager scoreManager;
 
+    // Variables para la caída rápida con zona de pulsación
+    private bool isHolding;
+    public float holdTimeToFastDrop = 0.3f;
+    private Rect fastDropZone;
+    
+    private float initialStepDelay; // Variable para guardar el valor original de stepDelay
+    public float movefast = 0.8f; // Variable para controlar la velocidad de la caída rápida
+
+
     public void Initialize(Board board, Vector3Int position, TetrominoData data)
     {
-        scoreManager = FindObjectOfType<ScoreManager>(); 
+        scoreManager = FindObjectOfType<ScoreManager>();
         this.Data = data;
         this.board = board;
         this.Position = position;
@@ -54,87 +62,114 @@ public class Piece : MonoBehaviour
             Cells[i] = (Vector3Int)data.cells[i];
         }
         UpdateStepDelay(scoreManager.Level);
+        initialStepDelay = stepDelay;
+
+    }
+
+    private void Start()
+    {
+        // Inicializar fastDropZone aquí, ya que Screen.width y Screen.height no están disponibles en el constructor
+        fastDropZone = new Rect(0, 0, Screen.width, Screen.height / 3);
     }
 
     private void Update()
+{
+    board.Clear(this);
+    lockTime += Time.deltaTime;
+
+    Vector2 swipeDelta; // Declarar swipeDelta fuera del switch
+
+    if (Input.touchCount > 0)
     {
-        board.Clear(this);
+        Touch touch = Input.GetTouch(0);
 
-        lockTime += Time.deltaTime;
-
-        if (Input.touchCount > 0)
+        switch (touch.phase)
         {
-            Touch touch = Input.GetTouch(0);
+            case TouchPhase.Began:
+                touchStartPosition = touch.position;
+                touchStartTime = Time.time;
 
-            switch (touch.phase)
-            {
-                case TouchPhase.Began:
-                    touchStartPosition = touch.position;
-                    touchStartTime = Time.time;
-                    swipeUpDetected = false;
-                    
-                    
-                    break;
+                // Verificar si el toque está dentro de la zona de caída rápida
+                if (fastDropZone.Contains(touch.position))
+                {
+                    isHolding = true;
+                    Debug.Log("Toque iniciado en: " + touch.position + ", isHolding: " + isHolding); // Debug
+                }
+                swipeUpDetected = false;
+                break;
 
-                case TouchPhase.Moved:
-                    touchEndPosition = touch.position;
-                    Vector2 swipeDelta = touchEndPosition - touchStartPosition;
+            case TouchPhase.Moved:
+                touchEndPosition = touch.position;
+                swipeDelta = touchEndPosition - touchStartPosition;
 
-                    if (Mathf.Abs(swipeDelta.x) > Mathf.Abs(swipeDelta.y) && Mathf.Abs(swipeDelta.x) > minSwipeDistance)
+                if (Mathf.Abs(swipeDelta.x) > Mathf.Abs(swipeDelta.y) && Mathf.Abs(swipeDelta.x) > minSwipeDistance)
+                {
+                    if (swipeDelta.x > 0)
                     {
-                        if (swipeDelta.x > 0)
-                        {
-                            Move(Vector2Int.right);
-                            touchStartPosition = touch.position;
-                            touchMoveTime = Time.time + touchMoveDelay;
-                        }
-                        else if (swipeDelta.x < 0)
-                        {
-                            Move(Vector2Int.left);
-                            touchStartPosition = touch.position;
-                            touchMoveTime = Time.time + touchMoveDelay;
-                        }
+                        Move(Vector2Int.right);
+                        touchStartPosition = touch.position;
+                        touchMoveTime = Time.time + touchMoveDelay;
                     }
-                    break;
-
-                case TouchPhase.Ended:
-                    touchEndPosition = touch.position;
-                    
-                    swipeDelta = touchEndPosition - touchStartPosition;
-
-                    if (swipeDelta.y > Mathf.Abs(swipeDelta.x) && swipeDelta.y > swipeThreshold)
+                    else if (swipeDelta.x < 0)
                     {
-                        swipeUpDetected = true;
+                        Move(Vector2Int.left);
+                        touchStartPosition = touch.position;
+                        touchMoveTime = Time.time + touchMoveDelay;
                     }
+                }
+                break;
 
-                    if (swipeUpDetected)
-                    {
-                         Debug.Log("swipe up OKK" );
-                        HardDrop();
-                    }
-                    
-                    else if (Time.time - touchStartTime <= maxTapDuration && swipeDelta.magnitude < maxSwipeDistance)
-                    {
-                        Rotate(-1);
-                    }
-                    break;
-            }
+            case TouchPhase.Ended:
+                touchEndPosition = touch.position;
+
+                // Restaurar la velocidad normal al soltar el toque
+                stepDelay = Mathf.Max(0.01f, 1f - (scoreManager.Level * (0.99f / Nlevels))); 
+
+                Debug.Log("Toque finalizado, isHolding: " + isHolding); // Debug
+
+                swipeDelta = touchEndPosition - touchStartPosition;
+
+                if (swipeDelta.y > Mathf.Abs(swipeDelta.x) && swipeDelta.y > swipeThreshold)
+                {
+                    swipeUpDetected = true;
+                }
+
+                if (swipeUpDetected)
+                {
+                    Debug.Log("swipe up OKK");
+                    HardDrop();
+                }
+
+                else if (Time.time - touchStartTime <= maxTapDuration && swipeDelta.magnitude < maxSwipeDistance)
+                {
+                    Rotate(-1);
+                }
+                break;
         }
 
-        if (Time.time > stepTime)
+        // Verificar si se ha mantenido pulsado el tiempo suficiente para el fast drop (solo si está dentro de la zona)
+        if (isHolding && Time.time - touchStartTime >= holdTimeToFastDrop)
         {
-            Step();
+            // Calcular la nueva velocidad solo una vez, usando initialStepDelay
+            stepDelay = initialStepDelay * movefast; // Ajustar la velocidad 
+            Debug.Log("stepDelay: " + stepDelay); // Debug
+            isHolding = false; // Desactivar isHolding para que no se vuelva a calcular la velocidad
         }
-        board.Set(this);
     }
 
-     public void UpdateStepDelay(int level)
+    if (Time.time > stepTime)
+    {
+        Step();
+    }
+    board.Set(this);
+}
+    public void UpdateStepDelay(int level)
     {
         float decrement = 0.99f / Nlevels;
-        stepDelay = Mathf.Max(0.01f, 1f - (level * decrement)); 
-        lockDelay = Mathf.Max(0.01f, 1f - (level * decrement)); 
+        stepDelay = Mathf.Max(0.01f, 1f - (level * decrement));
+        lockDelay = Mathf.Max(0.01f, 1f - (level * decrement));
 
-        stepTime = Time.time + stepDelay; // 
+        stepTime = Time.time + stepDelay; 
     }
 
     public void HardDropButton()
@@ -159,12 +194,12 @@ public class Piece : MonoBehaviour
         {
             continue;
         }
-
         Lock();
     }
 
-      private void Lock()
+    private void Lock()
     {
+        stepDelay = Mathf.Max(0.01f, 1f - (scoreManager.Level * (0.99f / Nlevels))); // Restaurar stepDelay al bloquear
         board.Set(this);
         board.ClearLines();
         board.SpawnPiece();
@@ -186,7 +221,6 @@ public class Piece : MonoBehaviour
         }
         return valid;
     }
-
     private void Rotate(int direction)
     {
         int originalRotation = rotationIndex;

@@ -53,7 +53,7 @@ public class ScoreManager : MonoBehaviour
         {
             scoreText.text = "Score: " + Score.ToString();
             levelText.text = "Level: " + Level.ToString();
-            totallinesText.text = "Lineas Eliminadas: " + totalLinesCleared.ToString();
+            totallinesText.text = "Lineas: " + totalLinesCleared.ToString();
         }
     }
     private int CalculatePoints(int moveLinesCleared, int level)
